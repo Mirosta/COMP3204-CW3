@@ -71,7 +71,7 @@ public class TestHarness
         return result.getPredictedClasses().iterator().next();
     }
 
-    public void testRun(int noTrainingImages, int noTestingImages)
+    public double testRun(int noTrainingImages, int noTestingImages, boolean consoleOutput)
     {
         GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<String, FImage>(trainingSet, noTrainingImages, 0, noTestingImages);
         testing.setup();
@@ -83,13 +83,13 @@ public class TestHarness
 
         for (String actualClassification : splitter.getTestDataset().getGroups())
         {
-            System.out.print("Testing group: " + actualClassification);
+            if(consoleOutput) System.out.println("Testing group: " + actualClassification);
             ListDataset<FImage> groupInstances = splitter.getTestDataset().getInstances(actualClassification);
             int length = groupInstances.size();
             int n = 1;
             for(FImage image : groupInstances)
             {
-                System.out.print(n + "/" + length);
+                if(consoleOutput) System.out.println(n + "/" + length);
                 String classification = getClassification(testing.classify(image));
                 if(classification == actualClassification) correctAnswers ++;
                 else incorrectAnswers ++;
@@ -98,8 +98,10 @@ public class TestHarness
             }
         }
 
-        System.out.println("Correct: " + correctAnswers + "/" + totalAnswers);
-        System.out.println("Incorrect: " + incorrectAnswers + "/" + totalAnswers);
-        System.out.println("Ratio Correct: " + (correctAnswers/totalAnswers));
+        if(consoleOutput) System.out.println("Correct: " + correctAnswers + "/" + totalAnswers);
+        if(consoleOutput) System.out.println("Incorrect: " + incorrectAnswers + "/" + totalAnswers);
+        if(consoleOutput) System.out.println("Ratio Correct: " + (correctAnswers/totalAnswers));
+
+        return correctAnswers/totalAnswers;
     }
 }
