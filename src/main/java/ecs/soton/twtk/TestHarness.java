@@ -1,4 +1,4 @@
-package ecs.soton.twtk;
+package uk.ac.soton.ecs.twtk;
 
 import org.apache.commons.vfs2.FileSystemException;
 import org.openimaj.data.dataset.VFSGroupDataset;
@@ -47,7 +47,7 @@ public class TestHarness
         FileOutputStream outputStream = new FileOutputStream(testingOutputFile);
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream));
         int size = testingSet.size();
-
+        
         for(int i = 0; i < size; i++)
         {
             System.out.println("Testing " + (i+1) + "/" + size);
