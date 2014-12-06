@@ -12,7 +12,7 @@ public class App
     {
         TestHarness run1Harness = new TestHarness(new KNNClassifier(), "run1.txt");
         run1Harness.testRun(20, 20);
-        //TestHarness run2Harness = new TestHarness(new LinearClassifier(), "run2.txt");
-        //run2Harness.run();
+        TestHarness run2Harness = new TestHarness(new LinearClassifier(), "run2.txt");
+        run2Harness.testRun(4, 4);
     }
 }

@@ -1,18 +1,27 @@
 package uk.ac.soton.ecs.twtk;
 
+import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import de.bwaldvogel.liblinear.SolverType;
+import org.apache.commons.lang.ArrayUtils;
 import org.openimaj.data.DataSource;
+import org.openimaj.data.FloatArrayBackedDataSource;
 import org.openimaj.data.dataset.Dataset;
 import org.openimaj.data.dataset.GroupedDataset;
+import org.openimaj.data.dataset.ListBackedDataset;
 import org.openimaj.data.dataset.ListDataset;
 import org.openimaj.experiment.evaluation.classification.ClassificationResult;
 import org.openimaj.feature.DoubleFV;
 import org.openimaj.feature.FeatureExtractor;
+import org.openimaj.feature.FloatFV;
 import org.openimaj.feature.SparseIntFV;
+import org.openimaj.feature.local.LocalFeature;
+import org.openimaj.feature.local.LocalFeatureImpl;
+import org.openimaj.feature.local.SpatialLocation;
 import org.openimaj.feature.local.data.LocalFeatureListDataSource;
 import org.openimaj.feature.local.list.LocalFeatureList;
 import org.openimaj.image.DisplayUtilities;
@@ -21,11 +30,16 @@ import org.openimaj.image.annotation.evaluation.datasets.Caltech101.Record;
 import org.openimaj.image.feature.dense.gradient.dsift.ByteDSIFTKeypoint;
 import org.openimaj.image.feature.dense.gradient.dsift.PyramidDenseSIFT;
 import org.openimaj.image.feature.local.aggregate.BagOfVisualWords;
+import org.openimaj.image.feature.local.aggregate.BlockSpatialAggregator;
 import org.openimaj.image.feature.local.aggregate.PyramidSpatialAggregator;
 import org.openimaj.image.processing.resize.ResizeProcessor;
+import org.openimaj.math.geometry.point.Point2d;
+import org.openimaj.ml.annotation.linear.LiblinearAnnotator;
 import org.openimaj.ml.clustering.ByteCentroidsResult;
+import org.openimaj.ml.clustering.FloatCentroidsResult;
 import org.openimaj.ml.clustering.assignment.HardAssigner;
 import org.openimaj.ml.clustering.kmeans.ByteKMeans;
+import org.openimaj.ml.clustering.kmeans.FloatKMeans;
 import org.openimaj.util.pair.IntFloatPair;
 
 /**
@@ -33,79 +47,131 @@ import org.openimaj.util.pair.IntFloatPair;
  */
 public class LinearClassifier implements TestableClassifier
 {
+    private PatchExtractor patchExtractor;
+    private LiblinearAnnotator<FImage, String> annotator;
+
     @Override
     public void setup()
     {
-
+        patchExtractor = new PatchExtractor(8, 4);
     }
 
     @Override
     public void train(GroupedDataset<String, ? extends ListDataset<FImage>, FImage> trainingSet)
     {
+        System.out.println("Training assigner");
+        HardAssigner<float[], float[], IntFloatPair> assigner = trainQuantiser(trainingSet, patchExtractor);
+        System.out.println("Training annotator");
+        annotator = new LiblinearAnnotator<FImage, String>(new LinearExtractor(assigner, patchExtractor), LiblinearAnnotator.Mode.MULTICLASS, SolverType.L2R_L2LOSS_SVC, 1.0, 0.00001);
+        annotator.train((GroupedDataset<String, ListDataset<FImage>, FImage>) trainingSet);
     }
 
     @Override
     public ClassificationResult<String> classify(FImage image)
     {
-        return new ClassificationResult<String>()
-        {
-            @Override
-            public double getConfidence(String s)
-            {
-                return 0;
-            }
-
-            @Override
-            public Set<String> getPredictedClasses()
-            {
-                List<String> list = new ArrayList<String>();
-                list.add("Test");
-                return new HashSet<String>(list);
-            }
-        };
+        return annotator.classify(image);
     }
     
     
-	// Extracts first 10000 dense SIFT features from the images in the dataset
-	// and then clusters them into 300 separate classes.
-	static HardAssigner<float[], float[], IntFloatPair> trainQuantiser(
-			GroupedDataset<String, ? extends ListDataset<FImage>, FImage> sample, LinearExtractor featureExtractor)
+	private HardAssigner<float[], float[], IntFloatPair> trainQuantiser (GroupedDataset<String, ? extends ListDataset<FImage>, FImage> sample, PatchExtractor patchExtractor)
 	{
-		List<FImage> images = new ArrayList<FImage>();
-	    
-	    for (FImage i : sample) {
-	    	featureExtractor.extractFeature(i);
-	    }
-	
-//	    return result.defaultHardAssigner();
+        List<float[]> imagePatches = new ArrayList<float[]>();
+
+        int n = 1;
+	    for (FImage i : sample)
+        {
+            System.out.println(n++ + "/" + sample.numInstances());
+	    	List<LocalFeature<SpatialLocation, FloatFV>> patches = patchExtractor.getPatches(i);
+            for(LocalFeature<SpatialLocation, FloatFV> patch : patches) imagePatches.add(patch.getFeatureVector().getVector());
+        }
+
+        FloatKMeans km = FloatKMeans.createKDTreeEnsemble(500);
+        //Cluster the keypoints into a bag of visual words, and return an assigner which can assign new keypoints into that bag
+
+        FloatArrayBackedDataSource datasource = new FloatArrayBackedDataSource(makeFloatArray(imagePatches));
+        System.out.println("Clustering");
+        FloatCentroidsResult result = km.cluster(datasource);
+        System.out.println("Clustered");
+        return result.defaultHardAssigner();
 	}
-	
-	static class LinearExtractor implements FeatureExtractor<DoubleFV, FImage> {
-		
-		ListDataset<FImage> images = new ListDataset<FImage>();
-		
+
+    private float[][] makeFloatArray(List<float[]> floats)
+    {
+        float[][] output = new float[floats.size()][];
+
+        int n = 0;
+        for(float[] subArr: floats)
+        {
+            output[n] = subArr;
+            n++;
+        }
+
+        return output;
+    }
+
+    static class PatchExtractor
+    {
+        private int patchSize;
+        private int patchSpacing;
+
+        public PatchExtractor(int patchSize, int patchSpacing)
+        {
+            this.patchSize = patchSize;
+            this.patchSpacing = patchSpacing;
+        }
+
+        List<LocalFeature<SpatialLocation, FloatFV>> getPatches(FImage image)
+        {
+            int imgHeight = image.getHeight();
+            int imgWidth = image.getWidth();
+            List<LocalFeature<SpatialLocation, FloatFV>> patches = new ArrayList<LocalFeature<SpatialLocation, FloatFV>>();
+
+            for (int y=0; y<imgHeight; y += patchSpacing) {
+                for (int x=0; x<imgWidth; x += patchSpacing) {
+                    FImage patch = image.extractROI(x, y, patchSize, patchSize);
+                    //Mean center and normalise
+                    float average = patch.sum() / (patchSize * patchSize);
+                    patch = patch.subtract(average).normalise();
+                    patches.add(new LocalFeatureImpl<SpatialLocation, FloatFV>(new SpatialLocation(x, y), new FloatFV(flattenImage(patch))));
+                }
+            }
+
+            return patches;
+        }
+
+        float[] flattenImage(FImage image)
+        {
+            float[] output = new float[image.getWidth() * image.getHeight()];
+
+            for(int y = 0; y < image.getHeight(); y++)
+            {
+                for(int x = 0; x < image.getWidth(); x++)
+                {
+                    output[y*image.getWidth() + x] = image.getPixel(x, y);
+                }
+            }
+
+            return output;
+        }
+    }
+
+	static class LinearExtractor implements FeatureExtractor<SparseIntFV, FImage>
+    {
+        private HardAssigner<float[], float[], IntFloatPair> assigner;
+        private PatchExtractor patchExtractor;
+        public LinearExtractor(HardAssigner<float[], float[], IntFloatPair> assigner, PatchExtractor patchExtractor)
+        {
+            this.assigner = assigner;
+            this.patchExtractor = patchExtractor;
+        }
+
 		@Override
-		public DoubleFV extractFeature(FImage object) {
-			
-			int imgHeight = object.getHeight();
-			int imgWidth = object.getWidth();
-			int N = 8;		// N x N dimensions
-			
-			// Adjust height and width to be equal, then get center of image
-			for (int y=0; y<imgHeight; y += 4) {
-				for (int x=0; x<imgWidth; x += 4) {
-					// mean-center here
-					images.add(object.extractROI(x, y, N, N).normalise());
-				}
-			}
-			
-			
-			// Get pixel vector
-			double[] pixelVector = result.getDoublePixelVector();
-			
-			
-			DoubleFV featureVector = new DoubleFV(pixelVector);
-			return featureVector.normaliseFV();
+		public SparseIntFV extractFeature(FImage image)
+        {
+            BagOfVisualWords<float[]> bovw = new BagOfVisualWords<float[]>(assigner);
+            List<LocalFeature<SpatialLocation, FloatFV>> features = patchExtractor.getPatches(image);
+
+            return bovw.aggregate(features);
 		}
 	}
 }

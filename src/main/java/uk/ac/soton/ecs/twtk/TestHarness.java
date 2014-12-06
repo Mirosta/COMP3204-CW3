@@ -1,6 +1,7 @@
 package uk.ac.soton.ecs.twtk;
 
 import org.apache.commons.vfs2.FileSystemException;
+import org.openimaj.data.dataset.ListDataset;
 import org.openimaj.data.dataset.VFSGroupDataset;
 import org.openimaj.data.dataset.VFSListDataset;
 import org.openimaj.experiment.dataset.split.GroupedRandomSplitter;
@@ -82,12 +83,18 @@ public class TestHarness
 
         for (String actualClassification : splitter.getTestDataset().getGroups())
         {
-            for(FImage image : splitter.getTestDataset().getInstances(actualClassification))
+            System.out.print("Testing group: " + actualClassification);
+            ListDataset<FImage> groupInstances = splitter.getTestDataset().getInstances(actualClassification);
+            int length = groupInstances.size();
+            int n = 1;
+            for(FImage image : groupInstances)
             {
+                System.out.print(n + "/" + length);
                 String classification = getClassification(testing.classify(image));
                 if(classification == actualClassification) correctAnswers ++;
                 else incorrectAnswers ++;
                 totalAnswers ++;
+                n++;
             }
         }
 

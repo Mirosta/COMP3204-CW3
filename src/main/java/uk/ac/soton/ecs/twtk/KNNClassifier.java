@@ -99,6 +99,8 @@ public class KNNClassifier implements TestableClassifier {
 			
 			// Resize image to N x N pixels and normalise
 			FImage result = img.process(new ResizeProcessor(N,N));
+			float average = result.sum() / (result.getWidth() * result.getHeight());
+			result = result.subtract(average);
 			result = result.normalise();
 			
 			// Get pixel vector
