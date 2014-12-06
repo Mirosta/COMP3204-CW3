@@ -44,7 +44,7 @@ Temporary Items
 .apdisk
 
 #Maven Project
-pom.xml
+#pom.xml
 
 #Idea Project files
 .idea\
