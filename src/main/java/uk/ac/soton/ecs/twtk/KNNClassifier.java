@@ -14,6 +14,7 @@ import org.openimaj.data.dataset.VFSGroupDataset;
 import org.openimaj.data.dataset.VFSListDataset;
 import org.openimaj.experiment.dataset.sampling.GroupSampler;
 import org.openimaj.experiment.dataset.split.GroupedRandomSplitter;
+import org.openimaj.experiment.evaluation.classification.ClassificationResult;
 import org.openimaj.feature.DoubleFV;
 import org.openimaj.feature.DoubleFVComparator;
 import org.openimaj.feature.DoubleFVComparison;
@@ -68,9 +69,8 @@ public class KNNClassifier implements TestableClassifier {
 	}
 
 	@Override
-	public String classify(FImage image) {
-		knnAnnotator.classify(image);
-		
+	public ClassificationResult<String> classify(FImage image) {
+		return knnAnnotator.classify(image);
 	}
 
 

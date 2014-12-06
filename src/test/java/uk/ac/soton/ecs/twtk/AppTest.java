@@ -1,4 +1,4 @@
-package ecs.soton.twtk;
+package uk.ac.soton.ecs.twtk;
 
 import static org.junit.Assert.*;
 
