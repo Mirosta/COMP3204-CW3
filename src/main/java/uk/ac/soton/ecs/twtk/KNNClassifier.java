@@ -52,14 +52,18 @@ import org.openimaj.util.pair.IntFloatPair;
 //You can choose the optimal k-value for the classifier.
 
 public class KNNClassifier implements TestableClassifier {
-	
+
+	private final int k;
 	private KNNAnnotator<FImage, String, DoubleFV> knnAnnotator;
-	
-	public void setup() 
-	{	
+
+	public KNNClassifier(int k)	{
+		this.k = k;
+	}
+
+	public void setup() {
 		TinyImageExtractor extractor = new TinyImageExtractor();
 		DoubleFVComparison comparator = DoubleFVComparison.EUCLIDEAN;
-		knnAnnotator = KNNAnnotator.create(extractor, comparator);
+		knnAnnotator = KNNAnnotator.create(extractor, comparator, k);
 	}
 	
 
@@ -85,10 +89,10 @@ public class KNNClassifier implements TestableClassifier {
 			// Adjust height and width to be equal, then get center of image
 			if (imgHeight > imgWidth) {
 				img = img.extractCenter(imgWidth/2, imgHeight/2, imgWidth, imgWidth);
-				DisplayUtilities.display(img);
+				//DisplayUtilities.display(img);
 			} else if (imgWidth > imgHeight) {
 				img = img.extractCenter(imgWidth/2, imgHeight/2, imgHeight, imgHeight);
-				DisplayUtilities.display(img);
+				//DisplayUtilities.display(img);
 			} 
 			
 			int N = 16;		// N x N dimensions

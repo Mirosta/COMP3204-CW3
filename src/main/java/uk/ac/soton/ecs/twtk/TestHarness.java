@@ -3,6 +3,8 @@ package uk.ac.soton.ecs.twtk;
 import org.apache.commons.vfs2.FileSystemException;
 import org.openimaj.data.dataset.VFSGroupDataset;
 import org.openimaj.data.dataset.VFSListDataset;
+import org.openimaj.experiment.dataset.split.GroupedRandomSplitter;
+import org.openimaj.experiment.evaluation.classification.ClassificationResult;
 import org.openimaj.image.FImage;
 import org.openimaj.image.ImageUtilities;
 
@@ -54,12 +56,43 @@ public class TestHarness
             FImage testImage = testingSet.getInstance(i);
             String[] idParts = testingSet.getID(i).split("/");
             String id = idParts[idParts.length - 1];
-            String testResult = testing.classify(testImage).getPredictedClasses().iterator().next();
+            String testResult = getClassification(testing.classify(testImage));
             writer.write(id);
             writer.write(" ");
             writer.write(testResult);
             writer.newLine();
         }
         writer.close();
+    }
+
+    private static String getClassification(ClassificationResult<? extends String> result)
+    {
+        return result.getPredictedClasses().iterator().next();
+    }
+
+    public void testRun(int noTrainingImages, int noTestingImages)
+    {
+        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<String, FImage>(trainingSet, noTrainingImages, 0, noTestingImages);
+        testing.setup();
+        testing.train(splitter.getTrainingDataset());
+
+        double correctAnswers = 0;
+        double incorrectAnswers = 0;
+        double totalAnswers = 0;
+
+        for (String actualClassification : splitter.getTestDataset().getGroups())
+        {
+            for(FImage image : splitter.getTestDataset().getInstances(actualClassification))
+            {
+                String classification = getClassification(testing.classify(image));
+                if(classification == actualClassification) correctAnswers ++;
+                else incorrectAnswers ++;
+                totalAnswers ++;
+            }
+        }
+
+        System.out.println("Correct: " + correctAnswers + "/" + totalAnswers);
+        System.out.println("Incorrect: " + incorrectAnswers + "/" + totalAnswers);
+        System.out.println("Ratio Correct: " + (correctAnswers/totalAnswers));
     }
 }
