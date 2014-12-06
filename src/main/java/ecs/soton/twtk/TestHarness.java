@@ -54,7 +54,7 @@ public class TestHarness
             FImage testImage = testingSet.getInstance(i);
             String[] idParts = testingSet.getID(i).split("/");
             String id = idParts[idParts.length - 1];
-            String testResult = testing.classify(testImage);
+            String testResult = testing.classify(testImage).getPredictedClasses().iterator().next();
             writer.write(id);
             writer.write(" ");
             writer.write(testResult);

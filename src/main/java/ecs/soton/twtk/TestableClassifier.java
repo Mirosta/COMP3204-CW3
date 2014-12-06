@@ -1,6 +1,9 @@
 package uk.ac.soton.ecs.twtk;
 
 import org.openimaj.data.dataset.Dataset;
+import org.openimaj.data.dataset.GroupedDataset;
+import org.openimaj.data.dataset.ListDataset;
+import org.openimaj.experiment.evaluation.classification.ClassificationResult;
 import org.openimaj.image.FImage;
 
 /**
@@ -10,7 +13,7 @@ public interface TestableClassifier
 {
     public void setup();
 
-    public void train(Dataset<FImage> trainingSet);
+    public void train(GroupedDataset<String, ? extends ListDataset<FImage>, FImage> trainingSet);
 
-    public String classify(FImage image);
+    public ClassificationResult<String> classify(FImage image);
 }
