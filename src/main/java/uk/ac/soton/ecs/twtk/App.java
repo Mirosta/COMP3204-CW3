@@ -31,9 +31,10 @@ public class App
     	}
     	
     	TestHarness harness;
-    	switch(runNum)
+        int runNo = Integer.parseInt(runNum);
+    	switch(runNo)
     	{
-    		case "1":
+    		case 1:
     			if(profile) 
     			{
     				profileK();
@@ -41,21 +42,25 @@ public class App
     			}
     			harness = new TestHarness(new KNNClassifier(19), "run1.txt");
     			break;
-    		case "2":
+    		case 2:
     			harness = new TestHarness(new LinearClassifier(), "run2.txt");
     			break;
-    		case "3":
-    			harness = null;
+    		case 3:
+    			harness = new TestHarness(new BestClassifier(), "run3.txt");
     			break;
     		default:
     			harness = null;
     			break;
     	}
-    	
+    	if(harness == null)
+        {
+            System.out.println("Invalid run number!");
+            return;
+        }
         //TestHarness run1Harness = new TestHarness(new KNNClassifier(), "run1.txt");
         //run1Harness.testRun(20, 20);
         //profileK();
-        if(testRun) harness.testRun(75, 25, true);
+        if(testRun) harness.testRun(5, 5, true);
         else harness.run();
     }
 
