@@ -60,7 +60,7 @@ public class App
         //TestHarness run1Harness = new TestHarness(new KNNClassifier(), "run1.txt");
         //run1Harness.testRun(20, 20);
         //profileK();
-        if(testRun) harness.testRun(5, 5, true);
+        if(testRun) harness.testRun(1, 1, true);
         else harness.run();
     }
 
