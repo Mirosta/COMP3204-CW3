@@ -51,64 +51,74 @@ import org.openimaj.util.pair.IntFloatPair;
 //better if the tiny image is made to have zero mean and unit length. 
 //You can choose the optimal k-value for the classifier.
 
-public class KNNClassifier implements TestableClassifier {
+public class KNNClassifier implements TestableClassifier
+{
 
-	private final int k;
-	private KNNAnnotator<FImage, String, DoubleFV> knnAnnotator;
+    private final int k;
+    private KNNAnnotator<FImage, String, DoubleFV> knnAnnotator;
 
-	public KNNClassifier(int k)	{
-		this.k = k;
-	}
+    public KNNClassifier(int k)
+    {
+        this.k = k;
+    }
 
-	public void setup() {
-		TinyImageExtractor extractor = new TinyImageExtractor();
-		DoubleFVComparison comparator = DoubleFVComparison.EUCLIDEAN;
-		knnAnnotator = KNNAnnotator.create(extractor, comparator, k);
-	}
-	
-
-	@Override
-	public void train(GroupedDataset<String, ? extends ListDataset<FImage>, FImage> trainingSet) {
-		knnAnnotator.train(trainingSet);
-	}
-
-	@Override
-	public ClassificationResult<String> classify(FImage image) {
-		return knnAnnotator.classify(image);
-	}
+    public void setup()
+    {
+        TinyImageExtractor extractor = new TinyImageExtractor();
+        DoubleFVComparison comparator = DoubleFVComparison.EUCLIDEAN;
+        knnAnnotator = KNNAnnotator.create(extractor, comparator, k);
+    }
 
 
-	static class TinyImageExtractor implements FeatureExtractor<DoubleFV, FImage> {
+    @Override
+    public void train(GroupedDataset<String, ? extends ListDataset<FImage>, FImage> trainingSet)
+    {
+        knnAnnotator.train(trainingSet);
+    }
 
-		@Override
-		public DoubleFV extractFeature(FImage object) {
-			FImage img = object.clone();
-			int imgHeight = img.getHeight();
-			int imgWidth = img.getWidth();
-			
-			// Adjust height and width to be equal, then get center of image
-			if (imgHeight > imgWidth) {
-				img = img.extractCenter(imgWidth/2, imgHeight/2, imgWidth, imgWidth);
-				//DisplayUtilities.display(img);
-			} else if (imgWidth > imgHeight) {
-				img = img.extractCenter(imgWidth/2, imgHeight/2, imgHeight, imgHeight);
-				//DisplayUtilities.display(img);
-			} 
-			
-			int N = 16;		// N x N dimensions
-			
-			// Resize image to N x N pixels and normalise
-			FImage result = img.process(new ResizeProcessor(N,N));
-			float average = result.sum() / (result.getWidth() * result.getHeight());
-			result = result.subtract(average);
-			result = result.normalise();
-			
-			// Get pixel vector
-			double[] pixelVector = result.getDoublePixelVector();
-			
-			DoubleFV featureVector = new DoubleFV(pixelVector);
-			return featureVector;
-		}
-	}
+    @Override
+    public ClassificationResult<String> classify(FImage image)
+    {
+        return knnAnnotator.classify(image);
+    }
+
+
+    static class TinyImageExtractor implements FeatureExtractor<DoubleFV, FImage>
+    {
+
+        @Override
+        public DoubleFV extractFeature(FImage object)
+        {
+            FImage img = object.clone();
+            int imgHeight = img.getHeight();
+            int imgWidth = img.getWidth();
+
+            // Adjust height and width to be equal, then get center of image
+            if (imgHeight > imgWidth)
+            {
+                img = img.extractCenter(imgWidth / 2, imgHeight / 2, imgWidth, imgWidth);
+                //DisplayUtilities.display(img);
+            }
+            else if (imgWidth > imgHeight)
+            {
+                img = img.extractCenter(imgWidth / 2, imgHeight / 2, imgHeight, imgHeight);
+                //DisplayUtilities.display(img);
+            }
+
+            int N = 16;        // N x N dimensions
+
+            // Resize image to N x N pixels and normalise
+            FImage result = img.process(new ResizeProcessor(N, N));
+            float average = result.sum() / (result.getWidth() * result.getHeight());
+            result = result.subtract(average);
+            result = result.normalise();
+
+            // Get pixel vector
+            double[] pixelVector = result.getDoublePixelVector();
+
+            DoubleFV featureVector = new DoubleFV(pixelVector);
+            return featureVector;
+        }
+    }
 
 }

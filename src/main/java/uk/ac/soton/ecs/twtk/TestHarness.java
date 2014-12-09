@@ -28,8 +28,7 @@ public class TestHarness
             String workingDir = System.getProperty("user.dir");
             trainingSet = new VFSGroupDataset<FImage>("zip:" + workingDir + "/training.zip", ImageUtilities.FIMAGE_READER);
             testingSet = new VFSListDataset<FImage>("zip:" + workingDir + "/testing.zip", ImageUtilities.FIMAGE_READER);
-        }
-        catch (FileSystemException e)
+        } catch (FileSystemException e)
         {
             System.out.println("Couldn't load training or testing images");
             e.printStackTrace();
@@ -50,10 +49,10 @@ public class TestHarness
         FileOutputStream outputStream = new FileOutputStream(testingOutputFile);
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream));
         int size = testingSet.size();
-        
-        for(int i = 0; i < size; i++)
+
+        for (int i = 0; i < size; i++)
         {
-            System.out.println("Testing " + (i+1) + "/" + size);
+            System.out.println("Testing " + (i + 1) + "/" + size);
             FImage testImage = testingSet.getInstance(i);
             String[] idParts = testingSet.getID(i).split("/");
             String id = idParts[idParts.length - 1];
@@ -83,25 +82,25 @@ public class TestHarness
 
         for (String actualClassification : splitter.getTestDataset().getGroups())
         {
-            if(consoleOutput) System.out.println("Testing group: " + actualClassification);
+            if (consoleOutput) System.out.println("Testing group: " + actualClassification);
             ListDataset<FImage> groupInstances = splitter.getTestDataset().getInstances(actualClassification);
             int length = groupInstances.size();
             int n = 1;
-            for(FImage image : groupInstances)
+            for (FImage image : groupInstances)
             {
-                if(consoleOutput) System.out.println(n + "/" + length);
+                if (consoleOutput) System.out.println(n + "/" + length);
                 String classification = getClassification(testing.classify(image));
-                if(classification == actualClassification) correctAnswers ++;
-                else incorrectAnswers ++;
-                totalAnswers ++;
+                if (classification.equals(actualClassification)) correctAnswers++;
+                else incorrectAnswers++;
+                totalAnswers++;
                 n++;
             }
         }
 
-        if(consoleOutput) System.out.println("Correct: " + correctAnswers + "/" + totalAnswers);
-        if(consoleOutput) System.out.println("Incorrect: " + incorrectAnswers + "/" + totalAnswers);
-        if(consoleOutput) System.out.println("Ratio Correct: " + (correctAnswers/totalAnswers));
+        if (consoleOutput) System.out.println("Correct: " + correctAnswers + "/" + totalAnswers);
+        if (consoleOutput) System.out.println("Incorrect: " + incorrectAnswers + "/" + totalAnswers);
+        if (consoleOutput) System.out.println("Ratio Correct: " + (correctAnswers / totalAnswers));
 
-        return correctAnswers/totalAnswers;
+        return correctAnswers / totalAnswers;
     }
 }
