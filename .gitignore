@@ -51,7 +51,17 @@ Temporary Items
 *.idea
 *.iml
 
+#Eclipse
+.classpath
+.project
+.settings
+
+
 #Output and input files
+*.jar
 *.txt
 *.zip
+*.csv
+*.xlsx
 /target
+/out

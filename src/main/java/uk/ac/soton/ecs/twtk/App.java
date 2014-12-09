@@ -1,6 +1,5 @@
 package uk.ac.soton.ecs.twtk;
 
-import javax.ws.rs.HEAD;
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -11,11 +10,53 @@ public class App
 {
     public static void main(String[] args) throws IOException
     {
+    	boolean testRun = false;
+    	boolean profile = false;
+    	String runNum = "";
+    	if(args.length >= 2)
+    	{
+    		if(args[0].equalsIgnoreCase("debug"))
+    		{
+    			testRun = true;
+    		}
+    		else if(args[0].equalsIgnoreCase("profile"))
+    		{
+    			profile = true;
+    		}
+    		runNum = args[1];
+    	}
+    	else if(args.length == 1)
+    	{
+    		runNum = args[0];
+    	}
+    	
+    	TestHarness harness;
+    	switch(runNum)
+    	{
+    		case "1":
+    			if(profile) 
+    			{
+    				profileK();
+    				return;
+    			}
+    			harness = new TestHarness(new KNNClassifier(19), "run1.txt");
+    			break;
+    		case "2":
+    			harness = new TestHarness(new LinearClassifier(), "run2.txt");
+    			break;
+    		case "3":
+    			harness = null;
+    			break;
+    		default:
+    			harness = null;
+    			break;
+    	}
+    	
         //TestHarness run1Harness = new TestHarness(new KNNClassifier(), "run1.txt");
         //run1Harness.testRun(20, 20);
         //profileK();
-        TestHarness run2Harness = new TestHarness(new LinearClassifier(), "run2.txt");
-        run2Harness.testRun(4, 4, true);
+        if(testRun) harness.testRun(75, 25, true);
+        else harness.run();
     }
 
     private static void profileK() throws IOException
@@ -29,7 +70,7 @@ public class App
         writer.write("run,k-value,no_iterations,averaged ratio");
         writer.newLine();
 
-        for (int i=10; i<20; i++)
+        for (int i=1; i<=9; i++)
         {
             System.out.println("Run: " + (i-9) + ", K-value: " + i);
             TestHarness runHarness = new TestHarness(new KNNClassifier(i), "run" + i + ".txt");
