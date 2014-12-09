@@ -71,36 +71,41 @@ public class LinearClassifier implements TestableClassifier
     {
         return annotator.classify(image);
     }
-    
-    
-	private HardAssigner<float[], float[], IntFloatPair> trainQuantiser (GroupedDataset<String, ? extends ListDataset<FImage>, FImage> sample, PatchExtractor patchExtractor)
-	{
+
+
+    private HardAssigner<float[], float[], IntFloatPair> trainQuantiser(GroupedDataset<String, ? extends ListDataset<FImage>, FImage> sample, PatchExtractor patchExtractor)
+    {
         List<float[]> imagePatches = new ArrayList<float[]>();
 
         int n = 1;
-	    for (FImage i : sample)
+        for (FImage i : sample)
         {
             System.out.println(n++ + "/" + sample.numInstances());
-	    	List<LocalFeature<SpatialLocation, FloatFV>> patches = patchExtractor.getPatches(i);
-            for(LocalFeature<SpatialLocation, FloatFV> patch : patches) imagePatches.add(patch.getFeatureVector().getVector());
+            List<LocalFeature<SpatialLocation, FloatFV>> patches = patchExtractor.getPatches(i);
+            for (LocalFeature<SpatialLocation, FloatFV> patch : patches)
+                imagePatches.add(patch.getFeatureVector().getVector());
         }
 
+        //Cluster up to 100000 randomly selected features into 500 partitions, and return an assigner which can assign new features into those partitions
         FloatKMeans km = FloatKMeans.createKDTreeEnsemble(500);
-        //Cluster the keypoints into a bag of visual words, and return an assigner which can assign new keypoints into that bag
-
         FloatArrayBackedDataSource datasource = new FloatArrayBackedDataSource(makeFloatArray(imagePatches));
+        float[][] randomSamples = new float[Math.min(100000, imagePatches.size())][];
+        //Clear space in memory
+        imagePatches = null;
+        datasource = null;
+
         System.out.println("Clustering");
-        FloatCentroidsResult result = km.cluster(datasource);
+        FloatCentroidsResult result = km.cluster(randomSamples);
         System.out.println("Clustered");
         return result.defaultHardAssigner();
-	}
+    }
 
     private float[][] makeFloatArray(List<float[]> floats)
     {
         float[][] output = new float[floats.size()][];
 
         int n = 0;
-        for(float[] subArr: floats)
+        for (float[] subArr : floats)
         {
             output[n] = subArr;
             n++;
@@ -126,8 +131,10 @@ public class LinearClassifier implements TestableClassifier
             int imgWidth = image.getWidth();
             List<LocalFeature<SpatialLocation, FloatFV>> patches = new ArrayList<LocalFeature<SpatialLocation, FloatFV>>();
 
-            for (int y=0; y<imgHeight; y += patchSpacing) {
-                for (int x=0; x<imgWidth; x += patchSpacing) {
+            for (int y = 0; y < imgHeight; y += patchSpacing)
+            {
+                for (int x = 0; x < imgWidth; x += patchSpacing)
+                {
                     FImage patch = image.extractROI(x, y, patchSize, patchSize);
                     //Mean center and normalise
                     float average = patch.sum() / (patchSize * patchSize);
@@ -143,11 +150,11 @@ public class LinearClassifier implements TestableClassifier
         {
             float[] output = new float[image.getWidth() * image.getHeight()];
 
-            for(int y = 0; y < image.getHeight(); y++)
+            for (int y = 0; y < image.getHeight(); y++)
             {
-                for(int x = 0; x < image.getWidth(); x++)
+                for (int x = 0; x < image.getWidth(); x++)
                 {
-                    output[y*image.getWidth() + x] = image.getPixel(x, y);
+                    output[y * image.getWidth() + x] = image.getPixel(x, y);
                 }
             }
 
@@ -155,23 +162,24 @@ public class LinearClassifier implements TestableClassifier
         }
     }
 
-	static class LinearExtractor implements FeatureExtractor<SparseIntFV, FImage>
+    static class LinearExtractor implements FeatureExtractor<SparseIntFV, FImage>
     {
         private HardAssigner<float[], float[], IntFloatPair> assigner;
         private PatchExtractor patchExtractor;
+
         public LinearExtractor(HardAssigner<float[], float[], IntFloatPair> assigner, PatchExtractor patchExtractor)
         {
             this.assigner = assigner;
             this.patchExtractor = patchExtractor;
         }
 
-		@Override
-		public SparseIntFV extractFeature(FImage image)
+        @Override
+        public SparseIntFV extractFeature(FImage image)
         {
             BagOfVisualWords<float[]> bovw = new BagOfVisualWords<float[]>(assigner);
             List<LocalFeature<SpatialLocation, FloatFV>> features = patchExtractor.getPatches(image);
 
             return bovw.aggregate(features);
-		}
-	}
+        }
+    }
 }
