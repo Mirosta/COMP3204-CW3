@@ -47,14 +47,15 @@ public class BestClassifierGIST implements TestableClassifier
     @Override
     public void setup()
     {
-        gist = new Gist<FImage>(128, 128);
+    	int[] b = {16, 16, 16, 16};
+        gist = new Gist<FImage>(256, 256, Gist.DEFAULT_ORIENTATIONS_PER_SCALE, true);
     }
 
     @Override
     public void train(GroupedDataset<String, ? extends ListDataset<FImage>, FImage> trainingSet)
     {
         HardAssigner<double[], double[], IntDoublePair> assigner = trainQuantiser(trainingSet, gist);
-        HomogeneousKernelMap hKMap = new HomogeneousKernelMap(HomogeneousKernelMap.KernelType.Chi2, HomogeneousKernelMap.WindowType.Rectangular);
+        HomogeneousKernelMap hKMap = new HomogeneousKernelMap(HomogeneousKernelMap.KernelType.Chi2, HomogeneousKernelMap.WindowType.Uniform);
         FeatureExtractor<DoubleFV, FImage> extractor = hKMap.createWrappedExtractor(new GistExtractor(gist, assigner));
         annotator = new LiblinearAnnotator<FImage, String>(
                 extractor, LiblinearAnnotator.Mode.MULTICLASS, SolverType.L2R_L2LOSS_SVC, 1.0, 0.00001);
@@ -116,8 +117,9 @@ public class BestClassifierGIST implements TestableClassifier
         //Extract the features from a given image using the assigner trained earlier
         public DoubleFV extractFeature(FImage image)
         {
+        	image = image.normalise();
         	gist.analyseImage(image);
-            DoubleFV featureVector = gist.getResponse().normaliseFV();
+            DoubleFV featureVector = gist.getResponse().asDoubleFV();
             return featureVector;
         }
     }
