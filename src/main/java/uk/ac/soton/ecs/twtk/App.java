@@ -1,9 +1,16 @@
 package uk.ac.soton.ecs.twtk;
 
+import org.openimaj.data.dataset.GroupedDataset;
+import org.openimaj.data.dataset.ListDataset;
+import org.openimaj.experiment.evaluation.classification.BasicClassificationResult;
+import org.openimaj.experiment.evaluation.classification.ClassificationResult;
+import org.openimaj.image.FImage;
+
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.util.Set;
 
 
 public class App
@@ -46,8 +53,48 @@ public class App
     			harness = new TestHarness(new LinearClassifier(), "run2.txt");
     			break;
     		case 3:
-    			harness = new TestHarness(new BestClassifier(), "run3.txt");
+    			harness = new TestHarness(new BestClassifierGIST(), "run3.txt");
     			break;
+			case 4:
+				harness = new TestHarness(new TestableClassifier()
+				{
+					double minWidth;
+					double minHeight;
+
+					@Override
+					public void setup()
+					{
+
+					}
+
+					@Override
+					public void train(GroupedDataset<String, ? extends ListDataset<FImage>, FImage> trainingSet)
+					{
+						minWidth = 1000;
+						minHeight = 1000;
+
+						for(FImage image : trainingSet)
+						{
+							if(image.getWidth() < minWidth) minWidth = image.getWidth();
+							if(image.getHeight() < minHeight) minHeight = image.getHeight();
+						}
+
+						System.out.println("Min width: " + minWidth);
+						System.out.println("Min height: " + minHeight);
+					}
+
+					@Override
+					public ClassificationResult<String> classify(FImage image)
+					{
+						if(image.getWidth() < minWidth) minWidth = image.getWidth();
+						if(image.getHeight() < minHeight) minHeight = image.getHeight();
+						BasicClassificationResult<String> result = new BasicClassificationResult<String>();
+						result.put("Test", 1);
+						return result;
+					}
+
+				}, "run4.txt");
+				break;
     		default:
     			harness = null;
     			break;
@@ -60,7 +107,7 @@ public class App
         //TestHarness run1Harness = new TestHarness(new KNNClassifier(), "run1.txt");
         //run1Harness.testRun(20, 20);
         //profileK();
-        if(testRun) harness.testRun(1, 1, true);
+        if(testRun) harness.testRun(5, 5, true);
         else harness.run();
     }
 

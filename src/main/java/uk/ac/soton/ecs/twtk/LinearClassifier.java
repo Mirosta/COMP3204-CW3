@@ -89,7 +89,8 @@ public class LinearClassifier implements TestableClassifier
         //Cluster up to 100000 randomly selected features into 500 partitions, and return an assigner which can assign new features into those partitions
         FloatKMeans km = FloatKMeans.createKDTreeEnsemble(500);
         FloatArrayBackedDataSource datasource = new FloatArrayBackedDataSource(makeFloatArray(imagePatches));
-        float[][] randomSamples = new float[Math.min(100000, imagePatches.size())][];
+        float[][] randomSamples = new float[Math.min(100000, imagePatches.size())][patchExtractor.patchSize*patchExtractor.patchSize];
+        datasource.getRandomRows(randomSamples);
         //Clear space in memory
         imagePatches = null;
         datasource = null;
@@ -123,6 +124,27 @@ public class LinearClassifier implements TestableClassifier
         {
             this.patchSize = patchSize;
             this.patchSpacing = patchSpacing;
+        }
+
+        List<FImage> getPatchImages(FImage image)
+        {
+            int imgHeight = image.getHeight();
+            int imgWidth = image.getWidth();
+            List<FImage> patches = new ArrayList<FImage>();
+
+            for (int y = 0; y < imgHeight; y += patchSpacing)
+            {
+                for (int x = 0; x < imgWidth; x += patchSpacing)
+                {
+                    FImage patch = image.extractROI(x, y, patchSize, patchSize);
+                    //Mean center and normalise
+                    float average = patch.sum() / (patchSize * patchSize);
+                    patch = patch.subtract(average).normalise();
+                    patches.add(patch);
+                }
+            }
+
+            return patches;
         }
 
         List<LocalFeature<SpatialLocation, FloatFV>> getPatches(FImage image)

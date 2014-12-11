@@ -1,15 +1,17 @@
 package uk.ac.soton.ecs.twtk;
 
 import org.apache.commons.vfs2.FileSystemException;
-import org.openimaj.data.dataset.ListDataset;
-import org.openimaj.data.dataset.VFSGroupDataset;
-import org.openimaj.data.dataset.VFSListDataset;
+import org.openimaj.data.dataset.*;
 import org.openimaj.experiment.dataset.split.GroupedRandomSplitter;
 import org.openimaj.experiment.evaluation.classification.ClassificationResult;
 import org.openimaj.image.FImage;
 import org.openimaj.image.ImageUtilities;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by Tom on 02/12/2014.
@@ -26,7 +28,7 @@ public class TestHarness
         try
         {
             String workingDir = System.getProperty("user.dir");
-            trainingSet = new VFSGroupDataset<FImage>("zip:" + workingDir + "/training.zip", ImageUtilities.FIMAGE_READER);
+            trainingSet = new VFSGroupDataset<FImage>("zip:" + workingDir + "/training.zip!/training", ImageUtilities.FIMAGE_READER);
             testingSet = new VFSListDataset<FImage>("zip:" + workingDir + "/testing.zip", ImageUtilities.FIMAGE_READER);
         } catch (FileSystemException e)
         {
@@ -65,8 +67,25 @@ public class TestHarness
         writer.close();
     }
 
+    private Map<String, ListDataset<FImage>> getMap(VFSGroupDataset<FImage> trainingSet)
+    {
+        Map<String, ListDataset<FImage>> returnMap = new HashMap<String, ListDataset<FImage>>();
+
+        for(Map.Entry<String, VFSListDataset<FImage>> group : trainingSet.entrySet())
+        {
+            returnMap.put(group.getKey(), group.getValue());
+        }
+
+        return returnMap;
+    }
+
     private static String getClassification(ClassificationResult<? extends String> result)
     {
+        if(result.getPredictedClasses().size() == 0)
+        {
+            System.out.println("No predicted classes!");
+            return null;
+        }
         return result.getPredictedClasses().iterator().next();
     }
 
@@ -79,6 +98,8 @@ public class TestHarness
         double correctAnswers = 0;
         double incorrectAnswers = 0;
         double totalAnswers = 0;
+        List<Double> correctConfidence = new ArrayList<Double>();
+        List<Double> incorrectConfidence = new ArrayList<Double>();
 
         for (String actualClassification : splitter.getTestDataset().getGroups())
         {
@@ -89,9 +110,18 @@ public class TestHarness
             for (FImage image : groupInstances)
             {
                 if (consoleOutput) System.out.println(n + "/" + length);
-                String classification = getClassification(testing.classify(image));
-                if (classification.equals(actualClassification)) correctAnswers++;
-                else incorrectAnswers++;
+                ClassificationResult<String> result = testing.classify(image);
+                String classification = getClassification(result);
+                if (actualClassification.equals(classification))
+                {
+                    correctAnswers++;
+                    correctConfidence.add(result.getConfidence(classification));
+                }
+                else
+                {
+                    incorrectAnswers++;
+                    incorrectConfidence.add(result.getConfidence(classification));
+                }
                 totalAnswers++;
                 n++;
             }
